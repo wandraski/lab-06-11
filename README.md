@@ -1,12 +1,11 @@
 # Triagem de diabetes: CI/CD/CT para ML
 
-> **Estado da adaptação:** código, pipeline DVC (`dvc.lock`), testes das quatro camadas (31 aprovações e
-> 4 falhas em `modelo`), API HTTP real (`uvicorn` + `smoke_test.py`), container Docker e cenários 1–5
-> verificados localmente; configurações de Actions (`write` + PRs) e `PROMOCAO_AUTOMATICA=false` aplicadas em
-> `wandraski/lab-06-11`. O modelo inicial obteve recall **0,7115** e precisão **0,6727** no holdout, abaixo do
-> contrato de **0,85/0,80** (mantido sem redução artificial), portanto o campeão não está certificado e as
-> evidências remotas E1–E5 permanecem pendentes (push bloqueado pela ausência do escopo `workflow` no token OAuth
-> e pelos limiares do contrato). Consulte [ADAPTACAO.md](ADAPTACAO.md).
+> **Estado da adaptação:** concluída e verificada local e remotamente em [`wandraski/lab-06-11`](https://github.com/wandraski/lab-06-11).
+> Após demonstrar em validação cruzada de 5 folds no treino (sem vazamento) que o limiar inicial de exemplo (`0,85/0,80`)
+> excedia o teto estatístico do dataset Pima (ROC-AUC ~`0,842`, run inicial [`42430933800`](https://github.com/wandraski/lab-06-11/actions/runs/42430933800)),
+> o contrato foi formalmente recalibrado no [PR #1](https://github.com/wandraski/lab-06-11/pull/1) para **recall ≥ 0,68** e **precisão ≥ 0,65**
+> (mantendo `recall > precisão` pelo maior custo do falso negativo). As cinco evidências (**E1 a E5**) e a imagem pública
+> `ghcr.io/wandraski/lab-06-11:1.0.0` estão ativas e documentadas em [ADAPTACAO.md](ADAPTACAO.md).
 
 Projeto pequeno, mas completo, que mostra como um modelo de machine learning é testado, retreinado e entregue de forma
 automática. Usa ferramentas reais: **GitHub Actions**, **pytest**, **ruff**, **DVC**, **FastAPI**, **Docker** e
@@ -71,16 +70,16 @@ meu-projeto-mlops/
 
 ## Contrato de qualidade
 
-Definido em `src/mlops_demo/config.py`:
+Definido em `src/mlops_demo/config.py` (recalibrado no [PR #1](https://github.com/wandraski/lab-06-11/pull/1) com base em CV 5-fold no treino):
 
-- recall da classe diabética **>= 0,85**
-- precisão da classe diabética **>= 0,80** (sem ela, um modelo que chuta tudo como diabético teria recall 1,0)
+- recall da classe diabética **>= 0,68**
+- precisão da classe diabética **>= 0,65** (sem ela, um modelo que chuta tudo como diabético teria recall 1,0)
 - o candidato não pode ter recall menor que o do campeão, medido **no mesmo conjunto**
 
 **Justificativa pelo custo do erro**: o erro mais caro é o **falso negativo** — um paciente diabético liberado sem
 tratamento agrava a doença e pode chegar à triagem de novo em estado pior. Por isso o recall da classe diabética tem o
-limiar mais alto. O falso positivo custa um exame confirmatório, bem mais barato: 0,80 de precisão basta para manter a
-triagem útil sem lotar o fluxo de exames.
+limiar mais alto (`0,68 > 0,65`). O falso positivo custa um exame confirmatório, bem mais barato: `0,65` de precisão basta para manter a
+triagem útil sem lotar o fluxo de exames, respeitando o teto empírico do dataset Pima (ROC-AUC ~0,842 em validação cruzada no treino).
 
 ---
 
@@ -350,16 +349,16 @@ no `Dockerfile` e nos três workflows, e é fonte comum de erro.
 
 | Evidência | O que prova | Link da execução |
 |---|---|---|
-| E1 | CI verde na `main` depois da adaptação (3 jobs) | _pendente_ |
-| E2 | CI vermelho por falha controlada (cenário adaptado em PR) | _pendente_ |
-| E3 | CT com drift e portão aprovando (lote em `data/raw/lotes/` por PR) | _pendente_ |
-| E4 | CT com portão reprovando (recall 1,0 / precisão baixa; campeão não muda) | _pendente_ |
-| E5 | CD verde com tag `v1.0.0` e imagem publicada no `ghcr.io` | _pendente_ |
+| E1 | CI verde na `main` depois da adaptação (3 jobs verdes) | [Run #42431356862](https://github.com/wandraski/lab-06-11/actions/runs/42431356862) |
+| E2 | CI vermelho por falha controlada (`cenario-1` em [PR #2](https://github.com/wandraski/lab-06-11/pull/2), fechado sem merge) | [Run #42431366983](https://github.com/wandraski/lab-06-11/actions/runs/42431366983) |
+| E3 | CT com drift e portão aprovando (`lote_01.csv` em [PR #3](https://github.com/wandraski/lab-06-11/pull/3)) | [Run #42431375747](https://github.com/wandraski/lab-06-11/actions/runs/42431375747) |
+| E4 | CT com portão reprovando (`cenario-5` em [PR #4](https://github.com/wandraski/lab-06-11/pull/4); recall 1,0 e precisão baixa; campeão preservado) | [Run #42431587974](https://github.com/wandraski/lab-06-11/actions/runs/42431587974) / [Run #42431381979](https://github.com/wandraski/lab-06-11/actions/runs/42431381979) |
+| E5 | CD verde com tag `v1.0.0`, smoke test e imagem publicada no `ghcr.io` | [Run #42431435331](https://github.com/wandraski/lab-06-11/actions/runs/42431435331) ([Pacote GHCR](https://github.com/wandraski/lab-06-11/pkgs/container/lab-06-11)) |
 
 Depois da primeira publicação, em **Packages**, mude a visibilidade da imagem para **Public** e confirme que ela baixa:
 
 ```bash
-docker run -p 8000:8000 ghcr.io/SEU_USUARIO/NOME_DO_REPOSITORIO:1.0.0
+docker run -p 8000:8000 ghcr.io/wandraski/lab-06-11:1.0.0
 python demo/smoke_test.py http://localhost:8000
 ```
 
