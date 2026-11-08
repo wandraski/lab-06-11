@@ -58,11 +58,16 @@ def test_treino_e_deterministico(base_treino, params, xy_holdout):
 
 
 def test_modelo_consegue_memorizar_um_lote_pequeno(base_treino, params):
-    """Teste clássico de sanidade: se nem um lote pequeno é aprendido, há um bug no pipeline."""
+    """Teste de sanidade de capacidade: o pipeline aprende sinal relevante em um lote pequeno.
+
+    No dataset original (30 atributos para 40 amostras), um hiperplano linear separava >= 95%.
+    No Pima (8 atributos clínicos com sobreposição intrínseca e regularização C=1,0), a acurácia
+    no lote de 40 amostras é 0,80 (bem acima da classe majoritária de 0,625), exigindo-se >= 0,75.
+    """
     pequeno = base_treino.sample(40, random_state=0)
     modelo = treinar(pequeno, params)
     X, y = separar_xy(pequeno)
-    assert (modelo.predict(X) == y).mean() >= 0.95
+    assert (modelo.predict(X) == y).mean() >= 0.75
 
 
 def test_probabilidades_sao_validas(modelo_atual, xy_holdout):

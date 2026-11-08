@@ -70,12 +70,15 @@ def test_gate_aprova_candidato_melhor_e_dentro_dos_limiares():
 
 
 def test_gate_reprova_recall_abaixo_do_limiar():
-    assert not decidir(_metricas(0.84, 0.99), _metricas(0.80, 0.99))["aprovado"]
+    abaixo = round(config.RECALL_MINIMO - 0.01, 2)
+    campeao = round(config.RECALL_MINIMO - 0.05, 2)
+    assert not decidir(_metricas(abaixo, 0.99), _metricas(campeao, 0.99))["aprovado"]
 
 
 def test_gate_reprova_precisao_abaixo_do_limiar():
     # recall perfeito não compensa uma precisão ruim
-    assert not decidir(_metricas(1.0, 0.70), _metricas(0.95, 0.95))["aprovado"]
+    abaixo = round(config.PRECISAO_MINIMA - 0.01, 2)
+    assert not decidir(_metricas(1.0, abaixo), _metricas(0.95, 0.95))["aprovado"]
 
 
 def test_gate_reprova_candidato_pior_que_o_campeao():

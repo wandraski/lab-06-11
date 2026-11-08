@@ -56,7 +56,7 @@ def cenario_3() -> None:
 
 
 def cenario_4() -> None:
-    caminho = gerar_lote("lote_01", n=120, fator_drift=0.75, semente=1)
+    caminho = gerar_lote("lote_01", n=40, fator_drift=0.75, semente=1)
     print("criado:", Path(caminho).relative_to(RAIZ), "(atributos metabólicos 25% menores)")
 
 
