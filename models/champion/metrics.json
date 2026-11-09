@@ -3,5 +3,5 @@
   "precisao_diabetica": 0.6727272727272727,
   "acuracia": 0.78,
   "n_amostras": 150,
-  "origem": "base_treino.csv"
+  "origem": "treinamento contínuo (CT)"
 }
